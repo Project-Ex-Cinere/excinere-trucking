@@ -326,42 +326,90 @@ function StartDeliveryScene()
     TaskLeaveVehicle(playerPed, GetVehiclePedIsIn(playerPed, false), 0)
     Wait(1000)
 
-    -- Adjust the camera to a higher angle offset to the side of the player
-    local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-    local playerCoords = GetEntityCoords(playerPed)
-    SetCamCoord(cam, playerCoords.x + 2.5, playerCoords.y + 2.5, playerCoords.z + 2.5)  -- Position to the side and above
-    PointCamAtCoord(cam, playerCoords.x, playerCoords.y, playerCoords.z + 0.5)  -- Aim slightly above the player's position
-    SetCamActive(cam, true)
-    RenderScriptCams(true, false, 0, true, true)
-
+    -- Request NPC model
     local npcModel = GetHashKey("s_m_m_trucker_01")
     RequestModel(npcModel)
     while not HasModelLoaded(npcModel) do
         Citizen.Wait(0)
     end
 
+    -- Spawn NPC on the ground
+    local playerCoords = GetEntityCoords(playerPed)
     local npcCoords = vector3(playerCoords.x + 5.0, playerCoords.y + 5.0, playerCoords.z)
-    local npc = CreatePed(4, npcModel, npcCoords.x, npcCoords.y, npcCoords.z, 0.0, true, true)
+    local _, groundZ = GetGroundZFor_3dCoord(npcCoords.x, npcCoords.y, npcCoords.z)
+    local npc = CreatePed(4, npcModel, npcCoords.x, npcCoords.y, groundZ, 0.0, true, true)
+    local npcHeading = GetEntityHeading(npc)
 
-    TaskGoToEntity(npc, playerPed, -1, 1.5, 1.0, 1073741824, 0)
-    Wait(3000)
+    -- Set up camera in front of NPC while they smoke
+    local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
+    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * -1.5, npcCoords.y + math.sin(math.rad(npcHeading)) * -1.5, groundZ + 1.8)
+    PointCamAtEntity(cam, npc, 0, 0, 0, true)
+    SetCamActive(cam, true)
+    RenderScriptCams(true, false, 0, true, true)
 
-    -- Test
-    TaskStartScenarioInPlace(npc, "WORLD_HUMAN_CLIPBOARD", 0, true)  -- NPC with clipboard
-    TaskStartScenarioInPlace(playerPed, "PROP_HUMAN_ATM", 0, true)    -- Player receives money
+    -- Start player smoking and facing away initially
+    TaskStartScenarioInPlace(playerPed, "WORLD_HUMAN_SMOKING", 0, true)
 
-    Citizen.Wait(3000)
-
-    ClearPedTasksImmediately(playerPed)
+    -- NPC smokes for 10 seconds
+    TaskStartScenarioInPlace(npc, "WORLD_HUMAN_SMOKING", 0, true)
+    Wait(10000)
     ClearPedTasksImmediately(npc)
-    DeleteEntity(npc)
 
-    RenderScriptCams(false, false, 0, true, true)
-    DestroyCam(cam, false)
+    -- Load the animation dictionary for the whistle
+    RequestAnimDict("rcmnigel1c")
+    while not HasAnimDictLoaded("rcmnigel1c") do
+        Citizen.Wait(0)
+    end
 
-    JobManager:CompleteJob()
-    ShowHelpNotification("Delivery complete! You have been paid.")
+    -- Move camera behind NPC as they start walking toward the player
+    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * 2.5, npcCoords.y + math.sin(math.rad(npcHeading)) * 2.5, groundZ + 1.8)
+    PointCamAtCoord(cam, playerCoords.x, playerCoords.y, playerCoords.z + 1.0)
+
+    -- NPC starts walking towards the player
+    TaskGoToEntity(npc, playerPed, -1, 1.5, 1.0, 1073741824, 0)
+
+    Citizen.CreateThread(function()
+        local whistleDone = false
+
+        while not IsEntityAtEntity(npc, playerPed, 1.5, 1.5, 1.5, false, true, 0) do
+            Citizen.Wait(0)
+            local npcPosition = GetEntityCoords(npc)
+
+            -- Keep camera behind NPC’s shoulder
+            SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -2.5, npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -2.5, npcPosition.z + 1.8)
+            PointCamAtCoord(cam, playerCoords.x, playerCoords.y, playerCoords.z + 1.0)
+
+            -- Whistle once after 2 seconds of walking
+            if not whistleDone and GetEntitySpeed(npc) > 0 then
+                Wait(2000)
+                TaskPlayAnim(npc, "rcmnigel1c", "hailing_whistle_waive_a", 8.0, 8.0, 1000, 49, 0, 0, 0, 0)
+                TaskTurnPedToFaceEntity(playerPed, npc, -1)
+                PlayAmbientSpeech1(npc, "GENERIC_WHISTLE", "SPEECH_PARAMS_FORCE_NORMAL")
+                whistleDone = true
+            end
+        end
+
+        -- Final camera adjustment: Slightly offset to the side as NPC reaches player
+        local npcPosition = GetEntityCoords(npc)
+        SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -1.5, npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -0.5, npcPosition.z + 1.6)
+
+        -- NPC does clipboard task for 10 seconds
+        TaskStartScenarioInPlace(npc, "WORLD_HUMAN_CLIPBOARD", 0, true)
+        Wait(10000)
+
+        -- Clean up tasks and remove camera
+        ClearPedTasksImmediately(playerPed)
+        ClearPedTasksImmediately(npc)
+        DeleteEntity(npc)
+        RenderScriptCams(false, false, 0, true, true)
+        DestroyCam(cam, false)
+
+        -- Complete job and show notification
+        JobManager:CompleteJob()
+        ShowHelpNotification("Delivery complete! You have been paid.")
+    end)
 end
+
 
 RegisterCommand("testdeliveryscene", function()
     StartDeliveryScene()

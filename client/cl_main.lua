@@ -88,7 +88,6 @@ function JobManager:StartJob(jobType)
     end
 end
 
-
 function JobManager:CompleteJob()
     self.isDoingJob = false
     JobManager.alreadyOnJobNotified = false
