@@ -78,20 +78,131 @@ function SpawnTruck(model)
     SetPedIntoVehicle(playerPed, vehicle, -1) 
 end
 
-function SpawnCargoForPickup(cargoModel)
-    local modelHash = GetHashKey(cargoModel)
-    RequestModel(modelHash)
-    while not HasModelLoaded(modelHash) do
+function SpawnTrailerWithCars(trailerType)
+    local playerPed = PlayerPedId()
+    local pickupLocation = CargoManager.cargoMarkerLocation
+    
+    local trailerModelHash = GetHashKey(trailerType.Trailers[1])
+    RequestModel(trailerModelHash)
+    while not HasModelLoaded(trailerModelHash) do
         Citizen.Wait(0)
     end
 
-    local vehicleCoords = vector3(CargoManager.cargoMarkerLocation.x + 5, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z)
-    CargoManager.cargoTrailer = CreateVehicle(modelHash, vehicleCoords.x, vehicleCoords.y, vehicleCoords.z, 0.0, true, false)
+    if not CargoManager.cargoTrailer then
+        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+        print("Automotive trailer spawned.")
+    else
+        print("Automotive trailer already exists; skipping duplicate spawn.")
+        return
+    end
+
+    local carOffsets = {
+        { localX = 0.0, localY = 4.9, localZ = -1.4 },
+        { localX = 0.0, localY = 0.15, localZ = -1.2 },
+        { localX = 0.0, localY = -4.7, localZ = -1.2 },
+        { localX = 0.0, localY = 4.9, localZ = -3.1 },
+        { localX = 0.0, localY = 0.15, localZ = -3.1 },
+        { localX = 0.0, localY = -4.7, localZ = -3.0 }
+    }
+
+    local spawnedVehicleCount = 0
+
+    for i = 1, trailerType.MaxVehicles do
+        if spawnedVehicleCount >= #carOffsets then
+            break
+        end
+        
+        local vehicleConfig = trailerType.Vehicles[i]
+        local vehicleModelHash = GetHashKey(vehicleConfig.model)
+        RequestModel(vehicleModelHash)
+        while not HasModelLoaded(vehicleModelHash) do
+            Citizen.Wait(0)
+        end
+
+        local offset = carOffsets[spawnedVehicleCount + 1]
+        local car = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+
+        AttachVehicleOnToTrailer(
+            car, CargoManager.cargoTrailer,
+            offset.localX, offset.localY, offset.localZ,
+            0, 0, 0,
+            0, 0, 0,
+            false
+        )
+
+        spawnedVehicleCount = spawnedVehicleCount + 1
+        print(string.format("Spawned vehicle: %s on trailer with offset X: %.2f, Y: %.2f, Z: %.2f",
+            vehicleConfig.model, offset.localX, offset.localY, offset.localZ))
+    end
+    ShowHelpNotification("Automotive trailer and max vehicles spawned.")
 end
 
-function SetCargoPickupMarker()
-    CargoManager.cargoMarkerLocation = CargoManager.cargoMarkerLocations[math.random(#CargoManager.cargoMarkerLocations)]
+function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
+    local playerPed = PlayerPedId()
+    local pickupLocation = CargoManager.cargoMarkerLocation
 
+    local trailerModelHash = GetHashKey(trailerType.Trailers[1])
+    RequestModel(trailerModelHash)
+    while not HasModelLoaded(trailerModelHash) do
+        Citizen.Wait(0)
+    end
+
+
+    if not CargoManager.cargoTrailer then
+        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z + 1.0, 0.0, true, false)
+        print("Military trailer spawned.")
+    else
+        print("Military trailer already exists; skipping duplicate spawn.")
+        return
+    end
+
+    local militaryOffsets = {
+        { localX = 0.0, localY = 0.0, localZ = 0.0 },
+    }
+
+    local spawnedVehicleCount = 0
+
+    for i = 1, trailerType.MaxVehicles do
+        if spawnedVehicleCount >= #militaryOffsets then
+            break
+        end
+        
+        local vehicleConfig = trailerType.Vehicles[i]
+        local vehicleModelHash = GetHashKey(vehicleConfig.model)
+        RequestModel(vehicleModelHash)
+        while not HasModelLoaded(vehicleModelHash) do
+            Citizen.Wait(0)
+        end
+
+        local offset = militaryOffsets[spawnedVehicleCount + 1]
+        local vehicle = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+
+        AttachVehicleOnToTrailer(
+            vehicle, CargoManager.cargoTrailer,
+            offset.localX, offset.localY, offset.localZ,
+            0, 0, 0,
+            0, 0, 0,
+            false
+        )
+
+        spawnedVehicleCount = spawnedVehicleCount + 1
+        print(string.format("Spawned military vehicle: %s on trailer with offset X: %.2f, Y: %.2f, Z: %.2f",
+            vehicleConfig.model, offset.localX, offset.localY, offset.localZ))
+    end
+    ShowHelpNotification("Military trailer and max vehicles spawned.")
+end
+
+
+function SetCargoPickupMarker(trailerType)
+    -- Check if trailerType is nil
+    if not trailerType then
+        print("Error: SetCargoPickupMarker received a nil trailerType.")
+        ShowHelpNotification("Unable to set up cargo pickup point.")
+        return
+    end
+
+    -- Ensure a valid cargo marker location
+    CargoManager.cargoMarkerLocation = CargoManager.cargoMarkerLocations[math.random(#CargoManager.cargoMarkerLocations)]
     CargoManager.cargoBlip = AddBlipForCoord(CargoManager.cargoMarkerLocation.x, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z)
     SetBlipSprite(CargoManager.cargoBlip, 479)
     SetBlipColour(CargoManager.cargoBlip, 5)
@@ -99,12 +210,29 @@ function SetCargoPickupMarker()
     AddTextComponentString("Cargo Pickup Point")
     EndTextCommandSetBlipName(CargoManager.cargoBlip)
 
-    SpawnCargoForPickup(JobManager.currentCargo)
+    -- Check if the trailer already exists to avoid duplicate spawning
+    if CargoManager.cargoTrailer then
+        print("Trailer already exists; skipping spawn.")
+        return
+    end
 
+    -- Spawn appropriate trailer and vehicles based on `SpawnVehicles`
+    if trailerType.SpawnVehicles then
+        if trailerType.MaxVehicles > 1 then
+            print("Spawning automotive trailer with cars.")
+            SpawnTrailerWithCars(trailerType)
+        else
+            print("Spawning military trailer with one large vehicle.")
+            SpawnTrailerWithLargeMilitaryVehicle(trailerType)
+        end
+    else
+        CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
+    end
+
+    -- Wait for trailer attachment before showing delivery prompt
     Citizen.CreateThread(function()
         while JobManager.isDoingJob do
             Citizen.Wait(0)
-
             local playerVehicle = GetVehiclePedIsIn(PlayerPedId(), false)
             if playerVehicle ~= 0 and CargoManager.cargoTrailer then
                 local success, attachedTrailer = GetVehicleTrailerVehicle(playerVehicle)
@@ -117,6 +245,23 @@ function SetCargoPickupMarker()
             end
         end
     end)
+end
+
+function SpawnCargoForPickup(trailerType)
+    local trailerModel = trailerType.Trailers[math.random(#trailerType.Trailers)]
+    local trailerModelHash = GetHashKey(trailerModel)
+
+    RequestModel(trailerModelHash)
+    while not HasModelLoaded(trailerModelHash) do
+        Citizen.Wait(0)
+    end
+
+    -- Spawn the trailer at the cargo pickup location
+    local trailer = CreateVehicle(trailerModelHash, CargoManager.cargoMarkerLocation.x + 5, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z, 0.0, true, false)
+    print("Spawned trailer model:", trailerModel, "at", CargoManager.cargoMarkerLocation)
+
+    -- Return the trailer so it can be assigned to CargoManager.cargoTrailer
+    return trailer
 end
 
 function SetDeliveryMarker()
@@ -217,7 +362,6 @@ function StartDeliveryScene()
     JobManager:CompleteJob()
     ShowHelpNotification("Delivery complete! You have been paid.")
 end
-
 
 RegisterCommand("testdeliveryscene", function()
     StartDeliveryScene()

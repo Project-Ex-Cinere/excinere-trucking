@@ -14,11 +14,45 @@ ExCinere.Config = {
         freight = "packer"  
     },
 
-    CargoTypes = {
-        "trailers4",
-        "trailers",
-        "trailerlogs",
-        -- Add more as needed
+    TrailerTypes = {
+        Regular = {
+            Trailers = { "trailers4", "trailers"},
+            SpawnVehicles = false  -- No vehicles for Regular type
+        },
+        Industrial = {
+            Trailers = { "tanker", "trailerlogs" },
+            SpawnVehicles = false  -- No vehicles for Industrial type
+        },
+        Military = {
+            Trailers = { "armytrailer" },
+            SpawnVehicles = true,
+            MaxVehicles = 1, -- Only one large vehicle
+            Vehicles = {
+                { model = "rhino", chance = 0.7 },  -- Tank
+                { model = "lazer", chance = 0.3 }   -- Fighter jet
+            }
+        },
+        -- Props = {
+        --     Trailers = { "prop_trailer" },
+        --     SpawnVehicles = false  -- No vehicles for Props type
+        -- },
+        -- Special = {
+        --     Trailers = { "special_trailer" },
+        --     SpawnVehicles = false  -- No vehicles for Special type
+        -- },
+        Automotive = {  -- New Automotive trailer type
+            Trailers = { "tr2" },
+            SpawnVehicles = true,  -- This type spawns vehicles
+            MaxVehicles = 6,       -- Maximum of 6 vehicles
+            Vehicles = {
+                { model = "comet2", chance = 0.5 },
+                { model = "banshee", chance = 0.5 },
+                { model = "buffalo", chance = 0.5 },
+                { model = "infernus", chance = 0.5 },
+                { model = "adder", chance = 0.5 },
+                { model = "sultanrs", chance = 0.5 },
+            }
+        }
     },
 
     TruckImages = {
