@@ -192,17 +192,12 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
     ShowHelpNotification("Military trailer and max vehicles spawned.")
 end
 
-
-function SetCargoPickupMarker(trailerType)
-    -- Check if trailerType is nil
-    if not trailerType then
-        print("Error: SetCargoPickupMarker received a nil trailerType.")
-        ShowHelpNotification("Unable to set up cargo pickup point.")
+function SetCargoPickupMarker()
+    if not CargoManager.cargoMarkerLocation then
+        print("Error: cargoMarkerLocation is not set before calling SetCargoPickupMarker.")
         return
     end
 
-    -- Ensure a valid cargo marker location
-    CargoManager.cargoMarkerLocation = CargoManager.cargoMarkerLocations[math.random(#CargoManager.cargoMarkerLocations)]
     CargoManager.cargoBlip = AddBlipForCoord(CargoManager.cargoMarkerLocation.x, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z)
     SetBlipSprite(CargoManager.cargoBlip, 479)
     SetBlipColour(CargoManager.cargoBlip, 5)
@@ -210,26 +205,6 @@ function SetCargoPickupMarker(trailerType)
     AddTextComponentString("Cargo Pickup Point")
     EndTextCommandSetBlipName(CargoManager.cargoBlip)
 
-    -- Check if the trailer already exists to avoid duplicate spawning
-    if CargoManager.cargoTrailer then
-        print("Trailer already exists; skipping spawn.")
-        return
-    end
-
-    -- Spawn appropriate trailer and vehicles based on `SpawnVehicles`
-    if trailerType.SpawnVehicles then
-        if trailerType.MaxVehicles > 1 then
-            print("Spawning automotive trailer with cars.")
-            SpawnTrailerWithCars(trailerType)
-        else
-            print("Spawning military trailer with one large vehicle.")
-            SpawnTrailerWithLargeMilitaryVehicle(trailerType)
-        end
-    else
-        CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
-    end
-
-    -- Wait for trailer attachment before showing delivery prompt
     Citizen.CreateThread(function()
         while JobManager.isDoingJob do
             Citizen.Wait(0)
@@ -246,6 +221,7 @@ function SetCargoPickupMarker(trailerType)
         end
     end)
 end
+
 
 function SpawnCargoForPickup(trailerType)
     local trailerModel = trailerType.Trailers[math.random(#trailerType.Trailers)]

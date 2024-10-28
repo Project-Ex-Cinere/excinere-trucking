@@ -50,6 +50,9 @@ function JobManager:StartJob(jobType)
     self.isDoingJob = true
     print("Starting job for truck type:", jobType)
 
+    -- Clear any existing trailer before starting a new job
+    CargoManager:ClearExistingTrailer()
+
     StartJobTruck(jobType)
 
     local trailerTypeKey
@@ -73,24 +76,45 @@ function JobManager:StartJob(jobType)
         return
     end
 
-    print("Selected trailer type:", trailerTypeKey)
-    
-    SetCargoPickupMarker(trailerType)
+    -- Initialize cargo marker location here
+    CargoManager.cargoMarkerLocation = CargoManager.cargoMarkerLocations[math.random(#CargoManager.cargoMarkerLocations)]
 
-    if trailerType.SpawnVehicles then
+    -- Logic for military trailers to prevent double spawning
+    local selectedTrailer = trailerType.Trailers[math.random(#trailerType.Trailers)]
+    if trailerTypeKey == "Military" then
+        if selectedTrailer == "armytrailer" then
+            print("Military job selected with armytrailer, spawning single large vehicle on trailer.")
+            SpawnTrailerWithLargeMilitaryVehicle(trailerType)
+        else
+            print("Military job selected with " .. selectedTrailer .. " trailer. No vehicles will be spawned.")
+            CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
+        end
+    elseif trailerType.SpawnVehicles then
         if trailerTypeKey == "Automotive" then
             print("Automotive job selected, spawning vehicles on trailer.")
             SpawnTrailerWithCars(trailerType)
-        elseif trailerTypeKey == "Military" then
-            print("Military job selected, spawning single large vehicle on trailer.")
-            SpawnTrailerWithLargeMilitaryVehicle(trailerType)
         end
+    else
+        -- Spawn only the trailer if no vehicles are required
+        CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
     end
+
+    -- Place the pickup marker after trailer is spawned
+    SetCargoPickupMarker(trailerType)
 end
+
 
 function JobManager:CompleteJob()
     self.isDoingJob = false
     JobManager.alreadyOnJobNotified = false
     RemoveDeliveryBlip()
     ShowHelpNotification("Job completed! You can start a new one.")
+end
+
+function CargoManager:ClearExistingTrailer()
+    if self.cargoTrailer then
+        DeleteEntity(self.cargoTrailer)
+        self.cargoTrailer = nil
+        print("Previous trailer deleted.")
+    end
 end

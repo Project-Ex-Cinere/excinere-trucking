@@ -10,8 +10,8 @@ ExCinere.Config = {
     },
 
     TruckModels = {
-        quick = "phantom",  
-        freight = "packer"  
+        quick = "packer",  
+        freight = "phantom3"  
     },
 
     TrailerTypes = {
@@ -24,12 +24,12 @@ ExCinere.Config = {
             SpawnVehicles = false  -- No vehicles for Industrial type
         },
         Military = {
-            Trailers = { "armytrailer" },
+            Trailers = { "armytrailer", "armytanker", "armytrailer2" },
             SpawnVehicles = true,
-            MaxVehicles = 1, -- Only one large vehicle
+            MaxVehicles = 1,
             Vehicles = {
-                { model = "rhino", chance = 0.7 },  -- Tank
-                { model = "lazer", chance = 0.3 }   -- Fighter jet
+                { model = "rhino", chance = 0.7 },
+                { model = "lazer", chance = 0.3 }
             }
         },
         -- Props = {
