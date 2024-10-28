@@ -76,6 +76,9 @@ function SpawnTruck(model)
     
     local vehicle = CreateVehicle(modelHash, playerCoords.x + 5, playerCoords.y, playerCoords.z, heading, true, false)
     SetPedIntoVehicle(playerPed, vehicle, -1) 
+
+    local plate = GetVehicleNumberPlateText(vehicle)
+    TriggerEvent("vehiclekeys:client:SetOwner", plate)
 end
 
 function SpawnTrailerWithCars(trailerType)
