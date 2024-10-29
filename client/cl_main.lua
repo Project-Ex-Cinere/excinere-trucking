@@ -50,7 +50,6 @@ function JobManager:StartJob(jobType)
     self.isDoingJob = true
     print("Starting job for truck type:", jobType)
 
-    -- Clear any existing trailer before starting a new job
     CargoManager:ClearExistingTrailer()
 
     StartJobTruck(jobType)
@@ -76,10 +75,8 @@ function JobManager:StartJob(jobType)
         return
     end
 
-    -- Initialize cargo marker location here
     CargoManager.cargoMarkerLocation = CargoManager.cargoMarkerLocations[math.random(#CargoManager.cargoMarkerLocations)]
-
-    -- Logic for military trailers to prevent double spawning
+    
     local selectedTrailer = trailerType.Trailers[math.random(#trailerType.Trailers)]
     if trailerTypeKey == "Military" then
         if selectedTrailer == "armytrailer" then
@@ -87,7 +84,7 @@ function JobManager:StartJob(jobType)
             SpawnTrailerWithLargeMilitaryVehicle(trailerType)
         else
             print("Military job selected with " .. selectedTrailer .. " trailer. No vehicles will be spawned.")
-            CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
+            CargoManager.cargoTrailer = SpawnCargoForPickup(selectedTrailer)
         end
     elseif trailerType.SpawnVehicles then
         if trailerTypeKey == "Automotive" then
@@ -95,14 +92,11 @@ function JobManager:StartJob(jobType)
             SpawnTrailerWithCars(trailerType)
         end
     else
-        -- Spawn only the trailer if no vehicles are required
-        CargoManager.cargoTrailer = SpawnCargoForPickup(trailerType)
+        CargoManager.cargoTrailer = SpawnCargoForPickup(selectedTrailer)
     end
 
-    -- Place the pickup marker after trailer is spawned
-    SetCargoPickupMarker(trailerType)
+    SetCargoPickupMarker()
 end
-
 
 function JobManager:CompleteJob()
     self.isDoingJob = false

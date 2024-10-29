@@ -28,8 +28,11 @@ ExCinere.Config = {
             SpawnVehicles = true,
             MaxVehicles = 1,
             Vehicles = {
-                { model = "rhino", chance = 0.7 },
-                { model = "lazer", chance = 0.3 }
+                { model = "rhino", chance = 0.2 },
+                { model = "lazer", chance = 0.1 },
+                { model = "crusader", chance = 0.7 },
+                { model = "barracks", chance = 0.6 },
+                { model = "apc", chance = 0.4 }
             }
         },
         -- Props = {

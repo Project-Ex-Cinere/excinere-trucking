@@ -77,11 +77,17 @@ function SpawnTruck(model)
     local vehicle = CreateVehicle(modelHash, playerCoords.x + 5, playerCoords.y, playerCoords.z, heading, true, false)
     SetPedIntoVehicle(playerPed, vehicle, -1) 
 
-    local plate = GetVehicleNumberPlateText(vehicle)
-    TriggerEvent("vehiclekeys:client:SetOwner", plate)
+    --local plate = GetVehicleNumberPlateText(vehicle)
+    --TriggerEvent("vehiclekeys:client:SetOwner", plate)
 end
 
 function SpawnTrailerWithCars(trailerType)
+    if not trailerType or not trailerType.Trailers then
+        print("Error: Invalid trailerType or missing 'Trailers' field in SpawnTrailerWithCars.")
+        ShowHelpNotification("Failed to spawn trailer. Trailer configuration missing.")
+        return
+    end
+
     local playerPed = PlayerPedId()
     local pickupLocation = CargoManager.cargoMarkerLocation
     
@@ -141,6 +147,12 @@ function SpawnTrailerWithCars(trailerType)
 end
 
 function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
+    if not trailerType or not trailerType.Trailers or not trailerType.Vehicles then
+        print("Error: Invalid trailerType or missing required fields in SpawnTrailerWithLargeMilitaryVehicle.")
+        ShowHelpNotification("Failed to spawn military trailer or vehicles. Configuration missing.")
+        return
+    end
+
     local playerPed = PlayerPedId()
     local pickupLocation = CargoManager.cargoMarkerLocation
 
@@ -150,7 +162,6 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
         Citizen.Wait(0)
     end
 
-
     if not CargoManager.cargoTrailer then
         CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z + 1.0, 0.0, true, false)
         print("Military trailer spawned.")
@@ -159,41 +170,57 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
         return
     end
 
-    local militaryOffsets = {
-        { localX = 0.0, localY = 0.0, localZ = 0.0 },
-    }
+    local militaryOffsets = { { localX = 0.0, localY = 0.0, localZ = 0.0 } }
+
+    local function selectVehicleByChance(vehicles)
+        local totalChance = 0.0
+        for _, v in ipairs(vehicles) do
+            totalChance = totalChance + v.chance
+        end
+
+        local randomChance = math.random()
+        local cumulativeChance = 0.0
+
+        for _, v in ipairs(vehicles) do
+            cumulativeChance = cumulativeChance + v.chance / totalChance
+            if randomChance <= cumulativeChance then
+                return v
+            end
+        end
+        return nil
+    end
 
     local spawnedVehicleCount = 0
-
     for i = 1, trailerType.MaxVehicles do
-        if spawnedVehicleCount >= #militaryOffsets then
-            break
+        if spawnedVehicleCount >= #militaryOffsets then break end
+
+        local vehicleConfig = selectVehicleByChance(trailerType.Vehicles)
+        if vehicleConfig then
+            local vehicleModelHash = GetHashKey(vehicleConfig.model)
+            RequestModel(vehicleModelHash)
+            while not HasModelLoaded(vehicleModelHash) do
+                Citizen.Wait(0)
+            end
+
+            local offset = militaryOffsets[spawnedVehicleCount + 1]
+            local vehicle = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+
+            AttachVehicleOnToTrailer(
+                vehicle, CargoManager.cargoTrailer,
+                offset.localX, offset.localY, offset.localZ,
+                0, 0, 0,
+                0, 0, 0,
+                false
+            )
+
+            spawnedVehicleCount = spawnedVehicleCount + 1
+            print(string.format("Spawned military vehicle: %s on trailer with offset X: %.2f, Y: %.2f, Z: %.2f",
+                vehicleConfig.model, offset.localX, offset.localY, offset.localZ))
         end
-        
-        local vehicleConfig = trailerType.Vehicles[i]
-        local vehicleModelHash = GetHashKey(vehicleConfig.model)
-        RequestModel(vehicleModelHash)
-        while not HasModelLoaded(vehicleModelHash) do
-            Citizen.Wait(0)
-        end
-
-        local offset = militaryOffsets[spawnedVehicleCount + 1]
-        local vehicle = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
-
-        AttachVehicleOnToTrailer(
-            vehicle, CargoManager.cargoTrailer,
-            offset.localX, offset.localY, offset.localZ,
-            0, 0, 0,
-            0, 0, 0,
-            false
-        )
-
-        spawnedVehicleCount = spawnedVehicleCount + 1
-        print(string.format("Spawned military vehicle: %s on trailer with offset X: %.2f, Y: %.2f, Z: %.2f",
-            vehicleConfig.model, offset.localX, offset.localY, offset.localZ))
     end
     ShowHelpNotification("Military trailer and max vehicles spawned.")
 end
+
 
 function SetCargoPickupMarker()
     if not CargoManager.cargoMarkerLocation then
@@ -225,21 +252,23 @@ function SetCargoPickupMarker()
     end)
 end
 
+function SpawnCargoForPickup(selectedTrailer)
+    if not selectedTrailer then
+        print("Error: No selected trailer model provided in SpawnCargoForPickup.")
+        ShowHelpNotification("Failed to spawn trailer. Trailer model missing.")
+        return
+    end
 
-function SpawnCargoForPickup(trailerType)
-    local trailerModel = trailerType.Trailers[math.random(#trailerType.Trailers)]
-    local trailerModelHash = GetHashKey(trailerModel)
+    local trailerModelHash = GetHashKey(selectedTrailer)
 
     RequestModel(trailerModelHash)
     while not HasModelLoaded(trailerModelHash) do
         Citizen.Wait(0)
     end
 
-    -- Spawn the trailer at the cargo pickup location
     local trailer = CreateVehicle(trailerModelHash, CargoManager.cargoMarkerLocation.x + 5, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z, 0.0, true, false)
-    print("Spawned trailer model:", trailerModel, "at", CargoManager.cargoMarkerLocation)
+    print("Spawned trailer model:", selectedTrailer, "at", CargoManager.cargoMarkerLocation)
 
-    -- Return the trailer so it can be assigned to CargoManager.cargoTrailer
     return trailer
 end
 
@@ -388,7 +417,6 @@ function StartDeliveryScene()
         ShowHelpNotification("Delivery complete! You have been paid.")
     end)
 end
-
 
 RegisterCommand("testdeliveryscene", function()
     StartDeliveryScene()
