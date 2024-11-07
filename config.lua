@@ -4,9 +4,20 @@ ExCinere.Config = {
     BasePay = 1000,
     ExperienceMultiplier = 1.5,
 
-    JobNames = {
-        quick = "Quick Job",
-        freight = "Freight Job"
+    -- Test Mock Data for now
+    Jobs = {
+        quick = {
+            title = "Quick Job",
+            description = "Deliver a trailer to a nearby location",
+            reward = "$1000",
+            distance = "1 mile"
+        },
+        freight = {
+            title = "Freight Job",
+            description = "Deliver a trailer to a distant location",
+            reward = "$2000",
+            distance = "5 miles"
+        }
     },
 
     TruckModels = {

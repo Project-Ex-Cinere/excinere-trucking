@@ -2,5 +2,15 @@
     "Lua.diagnostics.disable": [
         "missing-parameter",
         "param-type-mismatch"
-    ]
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules/*": true,
+        "**/node_modules": true
+    }
 }

@@ -6,7 +6,7 @@ function DrawMarkersAtJobStartLocations()
 
         if distance < 50.0 then
             DrawMarker(
-                1, 
+                1,
                 location.x,
                 location.y,
                 location.z - 1.0,
@@ -33,7 +33,19 @@ function OpenJobStartUI()
     end
 
     SetNuiFocus(true, true)
-    SendNUIMessage({ action = "showUI" })
+    SendNUIMessage(
+        {
+            type = "open",
+            driverStats = {
+                name = "FINALLY WORKING!!!!",
+                level = 100,
+                experience = 1111111110,
+                money = 11110,
+            },
+            jobTypes = ExCinere.Config.Jobs,
+            activeJob = "freight"
+        }
+    )
 end
 
 -- Function to close the job UI
@@ -45,13 +57,11 @@ end)
 -- Callback for starting a quick job
 RegisterNUICallback('startQuickJob', function(_, cb)
     JobManager:StartJob("quick")
-    SetNuiFocus(false, false)
     cb('ok')
 end)
 
 RegisterNUICallback('startFreightJob', function(_, cb)
     JobManager:StartJob("freight")
-    SetNuiFocus(false, false)
     cb('ok')
 end)
 
@@ -73,9 +83,9 @@ function SpawnTruck(model)
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
     local heading = GetEntityHeading(playerPed)
-    
+
     local vehicle = CreateVehicle(modelHash, playerCoords.x + 5, playerCoords.y, playerCoords.z, heading, true, false)
-    SetPedIntoVehicle(playerPed, vehicle, -1) 
+    SetPedIntoVehicle(playerPed, vehicle, -1)
 
     --local plate = GetVehicleNumberPlateText(vehicle)
     --TriggerEvent("vehiclekeys:client:SetOwner", plate)
@@ -90,7 +100,7 @@ function SpawnTrailerWithCars(trailerType)
 
     local playerPed = PlayerPedId()
     local pickupLocation = CargoManager.cargoMarkerLocation
-    
+
     local trailerModelHash = GetHashKey(trailerType.Trailers[1])
     RequestModel(trailerModelHash)
     while not HasModelLoaded(trailerModelHash) do
@@ -98,7 +108,8 @@ function SpawnTrailerWithCars(trailerType)
     end
 
     if not CargoManager.cargoTrailer then
-        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z,
+            0.0, true, false)
         print("Automotive trailer spawned.")
     else
         print("Automotive trailer already exists; skipping duplicate spawn.")
@@ -106,10 +117,10 @@ function SpawnTrailerWithCars(trailerType)
     end
 
     local carOffsets = {
-        { localX = 0.0, localY = 4.9, localZ = -1.4 },
+        { localX = 0.0, localY = 4.9,  localZ = -1.4 },
         { localX = 0.0, localY = 0.15, localZ = -1.2 },
         { localX = 0.0, localY = -4.7, localZ = -1.2 },
-        { localX = 0.0, localY = 4.9, localZ = -3.1 },
+        { localX = 0.0, localY = 4.9,  localZ = -3.1 },
         { localX = 0.0, localY = 0.15, localZ = -3.1 },
         { localX = 0.0, localY = -4.7, localZ = -3.0 }
     }
@@ -120,7 +131,7 @@ function SpawnTrailerWithCars(trailerType)
         if spawnedVehicleCount >= #carOffsets then
             break
         end
-        
+
         local vehicleConfig = trailerType.Vehicles[i]
         local vehicleModelHash = GetHashKey(vehicleConfig.model)
         RequestModel(vehicleModelHash)
@@ -129,7 +140,8 @@ function SpawnTrailerWithCars(trailerType)
         end
 
         local offset = carOffsets[spawnedVehicleCount + 1]
-        local car = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+        local car = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true,
+            false)
 
         AttachVehicleOnToTrailer(
             car, CargoManager.cargoTrailer,
@@ -163,7 +175,8 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
     end
 
     if not CargoManager.cargoTrailer then
-        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y, pickupLocation.z + 1.0, 0.0, true, false)
+        CargoManager.cargoTrailer = CreateVehicle(trailerModelHash, pickupLocation.x, pickupLocation.y,
+            pickupLocation.z + 1.0, 0.0, true, false)
         print("Military trailer spawned.")
     else
         print("Military trailer already exists; skipping duplicate spawn.")
@@ -203,7 +216,8 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
             end
 
             local offset = militaryOffsets[spawnedVehicleCount + 1]
-            local vehicle = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z, 0.0, true, false)
+            local vehicle = CreateVehicle(vehicleModelHash, pickupLocation.x + 10, pickupLocation.y, pickupLocation.z,
+                0.0, true, false)
 
             AttachVehicleOnToTrailer(
                 vehicle, CargoManager.cargoTrailer,
@@ -221,14 +235,14 @@ function SpawnTrailerWithLargeMilitaryVehicle(trailerType)
     ShowHelpNotification("Military trailer and max vehicles spawned.")
 end
 
-
 function SetCargoPickupMarker()
     if not CargoManager.cargoMarkerLocation then
         print("Error: cargoMarkerLocation is not set before calling SetCargoPickupMarker.")
         return
     end
 
-    CargoManager.cargoBlip = AddBlipForCoord(CargoManager.cargoMarkerLocation.x, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z)
+    CargoManager.cargoBlip = AddBlipForCoord(CargoManager.cargoMarkerLocation.x, CargoManager.cargoMarkerLocation.y,
+        CargoManager.cargoMarkerLocation.z)
     SetBlipSprite(CargoManager.cargoBlip, 479)
     SetBlipColour(CargoManager.cargoBlip, 5)
     BeginTextCommandSetBlipName("STRING")
@@ -266,7 +280,8 @@ function SpawnCargoForPickup(selectedTrailer)
         Citizen.Wait(0)
     end
 
-    local trailer = CreateVehicle(trailerModelHash, CargoManager.cargoMarkerLocation.x + 5, CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z, 0.0, true, false)
+    local trailer = CreateVehicle(trailerModelHash, CargoManager.cargoMarkerLocation.x + 5,
+        CargoManager.cargoMarkerLocation.y, CargoManager.cargoMarkerLocation.z, 0.0, true, false)
     print("Spawned trailer model:", selectedTrailer, "at", CargoManager.cargoMarkerLocation)
 
     return trailer
@@ -276,7 +291,8 @@ function SetDeliveryMarker()
     local deliveryLocations = ExCinere.Config.DeliveryLocations
     JobManager.currentDeliveryLocation = deliveryLocations[math.random(#deliveryLocations)]
 
-    JobManager.deliveryBlip = AddBlipForCoord(JobManager.currentDeliveryLocation.x, JobManager.currentDeliveryLocation.y, JobManager.currentDeliveryLocation.z)
+    JobManager.deliveryBlip = AddBlipForCoord(JobManager.currentDeliveryLocation.x, JobManager.currentDeliveryLocation.y,
+        JobManager.currentDeliveryLocation.z)
     SetBlipRoute(JobManager.deliveryBlip, true)
     SetBlipSprite(JobManager.deliveryBlip, 280)
     SetBlipColour(JobManager.deliveryBlip, 5)
@@ -291,7 +307,9 @@ function SetDeliveryMarker()
             local distance = #(playerCoords - JobManager.currentDeliveryLocation)
 
             if distance < 50.0 then
-                DrawMarker(30, JobManager.currentDeliveryLocation.x, JobManager.currentDeliveryLocation.y, JobManager.currentDeliveryLocation.z - 1.0, 0.0, 0.0, 0.0, 90.0, 0.0, 0.0, 4.0, 4.0, 1.0, 0, 255, 0, 150, true, false, 2, nil, nil, false)
+                DrawMarker(30, JobManager.currentDeliveryLocation.x, JobManager.currentDeliveryLocation.y,
+                    JobManager.currentDeliveryLocation.z - 1.0, 0.0, 0.0, 0.0, 90.0, 0.0, 0.0, 4.0, 4.0, 1.0, 0, 255, 0,
+                    150, true, false, 2, nil, nil, false)
 
                 if distance < 5.0 then
                     if not IsVehicleAttachedToTrailer(GetVehiclePedIsIn(PlayerPedId(), false)) then
@@ -350,7 +368,8 @@ function StartDeliveryScene()
 
     -- Set up camera in front of NPC while they smoke
     local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * -1.5, npcCoords.y + math.sin(math.rad(npcHeading)) * -1.5, groundZ + 1.8)
+    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * -1.5,
+        npcCoords.y + math.sin(math.rad(npcHeading)) * -1.5, groundZ + 1.8)
     PointCamAtEntity(cam, npc, 0, 0, 0, true)
     SetCamActive(cam, true)
     RenderScriptCams(true, false, 0, true, true)
@@ -370,7 +389,8 @@ function StartDeliveryScene()
     end
 
     -- Move camera behind NPC as they start walking toward the player
-    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * 2.5, npcCoords.y + math.sin(math.rad(npcHeading)) * 2.5, groundZ + 1.8)
+    SetCamCoord(cam, npcCoords.x + math.cos(math.rad(npcHeading)) * 2.5,
+        npcCoords.y + math.sin(math.rad(npcHeading)) * 2.5, groundZ + 1.8)
     PointCamAtCoord(cam, playerCoords.x, playerCoords.y, playerCoords.z + 1.0)
 
     -- NPC starts walking towards the player
@@ -384,7 +404,8 @@ function StartDeliveryScene()
             local npcPosition = GetEntityCoords(npc)
 
             -- Keep camera behind NPC’s shoulder
-            SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -2.5, npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -2.5, npcPosition.z + 1.8)
+            SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -2.5,
+                npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -2.5, npcPosition.z + 1.8)
             PointCamAtCoord(cam, playerCoords.x, playerCoords.y, playerCoords.z + 1.0)
 
             -- Whistle once after 2 seconds of walking
@@ -399,7 +420,8 @@ function StartDeliveryScene()
 
         -- Final camera adjustment: Slightly offset to the side as NPC reaches player
         local npcPosition = GetEntityCoords(npc)
-        SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -1.5, npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -0.5, npcPosition.z + 1.6)
+        SetCamCoord(cam, npcPosition.x + math.cos(math.rad(GetEntityHeading(npc))) * -1.5,
+            npcPosition.y + math.sin(math.rad(GetEntityHeading(npc))) * -0.5, npcPosition.z + 1.6)
 
         -- NPC does clipboard task for 10 seconds
         TaskStartScenarioInPlace(npc, "WORLD_HUMAN_CLIPBOARD", 0, true)
@@ -420,4 +442,15 @@ end
 
 RegisterCommand("testdeliveryscene", function()
     StartDeliveryScene()
+end, false)
+
+
+function TestMessage()
+    print("Sending test message to NUI")
+    SetNuiFocus(true, true)
+    SendNUIMessage({ type = "testMessage", content = "Hello from Lua" })
+end
+
+RegisterCommand("testNUI", function()
+    TestMessage()
 end, false)

@@ -10,6 +10,9 @@ CargoManager = {
     cargoMarkerLocations = ExCinere.Config.CargoPickupLocations
 }
 
+local activeJob = nil
+local pendingJobType = nil
+
 CreateThread(function()
     while true do
         Wait(0)
@@ -33,6 +36,7 @@ CreateThread(function()
                     ShowHelpNotification("Press ~INPUT_CONTEXT~ to start a job")
 
                     if IsControlJustReleased(1, 51) then
+                        print("Pressed E within job start location")
                         OpenJobStartUI()
                     end
                 end
