@@ -15,7 +15,7 @@ ExCinere.Config = {
         freight = {
             title = "Freight Job",
             description = "Deliver a trailer to a distant location",
-            reward = "$2000",
+            reward = "2000",
             distance = "5 miles"
         }
     },
